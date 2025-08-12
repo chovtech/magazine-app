@@ -18,7 +18,7 @@ const onboardingSlides = [
     title: 'Contemporary World Nigeria Magazine App',
     description:
       'Stay informed with insightful articles, breaking news, and deep analyses from around the globe — all in one place.',
-    image: require('../assets/img/slide4.jpg'),
+    image: require('../assets/img/slide6.jpg'),
   },
   {
     id: '2',
@@ -53,12 +53,12 @@ const OnboardingScreen = ({ navigation }) => {
         friction: 8,
       }).start();
     } else {
-      navigation.replace('Home');
+      navigation.replace('MainTabs');
     }
   };
 
   const skipOnboarding = () => {
-    navigation.replace('Home');
+    navigation.replace('MainTabs');
   };
 
   const onGestureEvent = Animated.event(

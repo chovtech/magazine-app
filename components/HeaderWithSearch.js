@@ -1,29 +1,39 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
-export default function HeaderWithSearch() {
-  const notificationCount = 3; // You can make this dynamic later
+export default function HeaderWithSearch({ title }) {
+  const navigation = useNavigation();
+  const notificationCount = 3; // Can be dynamic later
 
   return (
     <View style={styles.container}>
       {/* Top Row: Profile - Title - Notification */}
       <View style={styles.topRow}>
-        <Image
-          source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
-          style={styles.profileImage}
-        />
-        <Text style={styles.title}>Home</Text>
+        {/* Profile Image with navigation */}
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <Image
+            source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
+            style={styles.profileImage}
+          />
+        </TouchableOpacity>
+
+        <Text style={styles.title}>{title}</Text>
 
         {/* Notification Button */}
-        <TouchableOpacity style={styles.notificationWrapper}>
-          <Ionicons name="notifications-outline" size={22} color="black" />
-          {notificationCount > 0 && (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationText}>{notificationCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.notificationWrapper} onPress={() => navigation.navigate('Notifications')}>
+            <Ionicons name="notifications-outline" size={22} color="black" />
+            {notificationCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationText}>{notificationCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+
+
+
       </View>
     </View>
   );

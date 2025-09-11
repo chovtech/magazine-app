@@ -15,7 +15,7 @@ export default function ArticleDetailsScreen({ route, navigation }) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detail news</Text>
         <TouchableOpacity>
-          <Ionicons name="bookmark-outline" size={22} color="black" />
+          <Ionicons name="share-outline" size={22} color="black" />
         </TouchableOpacity>
       </View>
 

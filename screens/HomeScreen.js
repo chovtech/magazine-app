@@ -13,7 +13,7 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container}>
-      <HeaderWithSearch />
+      <HeaderWithSearch title="Home" />
       <CategoriesScroll />
       <TrendingCarousel onPressItem={handlePressItem} />
       <RecommendedList

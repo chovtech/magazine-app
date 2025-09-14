@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,34 +9,70 @@ import {
   StyleSheet,
 } from 'react-native';
 
-import HeaderWithSearch from '../components/HeaderWithSearch'; // Your header component
-import trendingData from '../data/trendingData';
-import recommendedData from '../data/recommendedData';
+import HeaderWithSearch from '../components/HeaderWithSearch';
+import { fetchLatestPosts } from '../api/wpApi';
 
-// Assign unique IDs to avoid key duplication
-const allArticles = [
-  ...trendingData.map((item) => ({ ...item, uniqueId: `tr-${item.id}` })),
-  ...recommendedData.map((item) => ({ ...item, uniqueId: `rec-${item.id}` })),
-];
-
-export default function DiscoverScreen({ navigation }) {
+export default function DiscoverScreen({ navigation, route }) {
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [allArticles, setAllArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch posts from WordPress
+  useEffect(() => {
+    const loadArticles = async () => {
+      setLoading(true);
+      try {
+        const posts = await fetchLatestPosts(50); // Fetch latest 50 posts
+        const formatted = posts.map((post) => ({
+          uniqueId: `wp-${post.id}`,
+          id: post.id,
+          title: post.title.rendered,
+          image:
+            post._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
+            'https://via.placeholder.com/100',
+          category:
+            post._embedded?.['wp:term']?.[0]?.[0]?.name || 'General',
+          author:
+            post._embedded?.author?.[0]?.name || 'Unknown',
+          content: post.content.rendered,
+          date: new Date(post.date).toDateString(),
+        }));
+        setAllArticles(formatted);
+
+        // Set category from HomeScreen if passed
+        if (route.params?.category) {
+          setSelectedCategory(route.params.category);
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadArticles();
+  }, [route.params?.category]);
+
+  // Compute unique categories
   const categories = useMemo(() => {
     const cats = allArticles.map((a) => a.category);
     return ['All', ...Array.from(new Set(cats))];
-  }, []);
+  }, [allArticles]);
 
+  // Filter articles by category & search
   const filteredArticles = useMemo(() => {
     return allArticles.filter((article) => {
-      const matchCategory = selectedCategory === 'All' || article.category === selectedCategory;
-      const matchSearch = article.title.toLowerCase().includes(searchText.toLowerCase());
+      const matchCategory =
+        selectedCategory === 'All' || article.category === selectedCategory;
+      const matchSearch = article.title
+        .toLowerCase()
+        .includes(searchText.toLowerCase());
       return matchCategory && matchSearch;
     });
-  }, [searchText, selectedCategory]);
+  }, [searchText, selectedCategory, allArticles]);
 
-  const renderCategory = ({ item, index }) => (
+  const renderCategory = ({ item }) => (
     <TouchableOpacity
       style={[
         styles.categoryButton,
@@ -63,7 +99,9 @@ export default function DiscoverScreen({ navigation }) {
       <Image source={{ uri: item.image }} style={styles.articleImage} />
       <View style={styles.articleInfo}>
         <Text style={styles.articleCategory}>{item.category}</Text>
-        <Text style={styles.articleTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={styles.articleTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
         {item.author && <Text style={styles.articleAuthor}>By {item.author}</Text>}
       </View>
     </TouchableOpacity>
@@ -85,19 +123,26 @@ export default function DiscoverScreen({ navigation }) {
       <FlatList
         horizontal
         data={categories}
-        keyExtractor={(_, index) => `cat-${index}`} // use index as key for categories
+        keyExtractor={(_, index) => `cat-${index}`}
         renderItem={renderCategory}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoriesList}
       />
 
-      <FlatList
-        data={filteredArticles}
-        keyExtractor={(item) => item.uniqueId}
-        renderItem={renderArticle}
-        contentContainerStyle={styles.articlesList}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading articles...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredArticles}
+            keyExtractor={(item) => item.uniqueId}
+            renderItem={renderArticle}
+            contentContainerStyle={styles.articlesList}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+
     </View>
   );
 }
@@ -121,29 +166,28 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   categoryButton: {
-  backgroundColor: '#eee',
-  paddingHorizontal: 16,   // slightly wider for better tap area
-  paddingVertical: 6,      // reduce vertical padding to prevent clipping
-  borderRadius: 20,
-  marginHorizontal: 6,
-  justifyContent: 'center',  // center text vertically
-  alignItems: 'center',      // center text horizontally
-  height: 36,                // fixed height prevents stretching
-},
-categoryButtonSelected: {
-  backgroundColor: 'green',
-  // no extra padding or margin here to keep height consistent
-},
-categoryText: {
-  color: '#555',
-  fontWeight: '500',
-  fontSize: 14,          // slightly bigger for readability
-  lineHeight: 18,        // line height to match font size
-  textAlign: 'center',
-},
-categoryTextSelected: {
-  color: '#fff',
-},
+    backgroundColor: '#eee',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginHorizontal: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 36,
+  },
+  categoryButtonSelected: {
+    backgroundColor: 'green',
+  },
+  categoryText: {
+    color: '#555',
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  categoryTextSelected: {
+    color: '#fff',
+  },
   articlesList: {
     paddingHorizontal: 12,
     paddingBottom: 40,
@@ -181,4 +225,17 @@ categoryTextSelected: {
     fontSize: 12,
     color: '#666',
   },
+  loadingText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 14,
+    color: '#888',
+  },
+  loadingContainer: {
+  flex: 1,
+  justifyContent: 'flex-start', // start from top
+  alignItems: 'center',
+  paddingTop: 5,               // move down a bit from the top
+},
+
 });

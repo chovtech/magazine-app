@@ -21,14 +21,18 @@ export default function RecommendedList({ data, onSeeMore, onPressItem }) {
 
   return (
     <View>
-      <SectionHeader title="Recommended" onSeeMore={onSeeMore} />
-      <FlatList
-        data={data}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        scrollEnabled={false}
-        horizontal={false}
-      />
+      <SectionHeader title="Most Recent Post" onSeeMore={onSeeMore} />
+      {data.length === 0 ? (
+        <Text style={styles.emptyText}>Loading articles...</Text>
+      ) : (
+        <FlatList
+          data={data}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          scrollEnabled={false}
+          horizontal={false}
+        />
+      )}
     </View>
   );
 }
@@ -83,5 +87,11 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 12,
     color: '#888',
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginVertical: 20,
+    color: '#888',
+    fontSize: 14,
   },
 });

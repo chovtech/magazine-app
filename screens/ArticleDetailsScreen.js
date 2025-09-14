@@ -1,10 +1,12 @@
 // screens/ArticleDetailsScreen.js
 import React from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import RenderHTML from 'react-native-render-html';
 
 export default function ArticleDetailsScreen({ route, navigation }) {
   const { article } = route.params || {};
+  const { width } = useWindowDimensions();
 
   return (
     <ScrollView style={styles.container}>
@@ -20,28 +22,25 @@ export default function ArticleDetailsScreen({ route, navigation }) {
       </View>
 
       {/* Title */}
-      <Text style={styles.title}>
-        {article?.title || 'Player New York Knicks heroics lead team to victory against rivals'}
-      </Text>
+      <Text style={styles.title}>{article?.title || 'Untitled Post'}</Text>
 
       {/* Meta Info */}
       <View style={styles.metaRow}>
-        <Text style={styles.category}>NBA Global Games</Text>
+        <Text style={styles.category}>{article?.category || 'General'}</Text>
         <Text style={styles.dot}>•</Text>
-        <Text style={styles.date}>Thu, 10 Nov 2023</Text>
-        <Text style={styles.dot}>•</Text>
-        <Text style={styles.readTime}>10 min read</Text>
+        <Text style={styles.date}>{article?.date || 'Unknown Date'}</Text>
       </View>
 
       {/* Image */}
       <View style={styles.imageWrapper}>
         <Image
-          source={{ uri: article?.image || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80' }}
+          source={{
+            uri:
+              article?.image ||
+              'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80',
+          }}
           style={styles.image}
         />
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Trending</Text>
-        </View>
       </View>
 
       {/* Author Row */}
@@ -51,24 +50,25 @@ export default function ArticleDetailsScreen({ route, navigation }) {
           style={styles.authorImage}
         />
         <View style={styles.authorInfo}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={styles.authorName}>{article?.author || 'John William Smith'}</Text>
-            <Ionicons name="checkmark-circle" size={16} color="green" style={{ marginLeft: 4 }} />
-          </View>
-          <Text style={styles.followers}>20.9M Followers</Text>
+          <Text style={styles.authorName}>{article?.author || 'Unknown Author'}</Text>
+          <Text style={styles.followers}>Contributor</Text>
         </View>
-        <TouchableOpacity style={styles.followButton}>
-          <Text style={styles.followText}>Follow</Text>
-        </TouchableOpacity>
       </View>
 
-      {/* Body */}
-      <Text style={styles.body}>
-        {article?.content ||
-          `The rivals tried to respond in the final moments of the game, but the Knicks’ defense held firm, denying them any opportunity to score. As the final buzzer sounded, the Madison Square Garden erupted in cheers as the Knicks celebrated their hard-fought victory.
-
-In a thrilling match against their rivals, the New York Knicks secured a stunning victory with a final score of 112-108. The game, held at the Madison Square Garden, saw the Knicks’ star player shine.`}
-      </Text>
+      {/* Body (Render HTML) */}
+      {article?.content ? (
+        <RenderHTML
+          contentWidth={width}
+          source={{ html: article.content }}
+          tagsStyles={{
+            p: { fontSize: 15, lineHeight: 22, color: '#333', marginBottom: 12 },
+            h2: { fontSize: 18, fontWeight: 'bold', marginVertical: 10 },
+            img: { borderRadius: 8, marginVertical: 10 },
+          }}
+        />
+      ) : (
+        <Text style={styles.body}>No content available.</Text>
+      )}
     </ScrollView>
   );
 }
@@ -110,9 +110,6 @@ const styles = StyleSheet.create({
   date: {
     color: '#555',
   },
-  readTime: {
-    color: '#555',
-  },
   imageWrapper: {
     position: 'relative',
     marginBottom: 12,
@@ -121,20 +118,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 12,
-  },
-  badge: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: '#fff',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  badgeText: {
-    fontSize: 12,
-    color: '#FF4500',
-    fontWeight: '600',
   },
   authorRow: {
     flexDirection: 'row',
@@ -157,17 +140,6 @@ const styles = StyleSheet.create({
   followers: {
     fontSize: 12,
     color: '#888',
-  },
-  followButton: {
-    backgroundColor: '#FF4500',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  followText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
   },
   body: {
     fontSize: 14,

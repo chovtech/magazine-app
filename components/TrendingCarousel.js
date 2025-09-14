@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ImageBackground, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
-import trendingData from '../data/trendingData';
+import { fetchTrendingPosts } from '../api/wpApi'; // ✅
 
 const { width } = Dimensions.get('window');
 
 export default function TrendingCarousel({ onPressItem }) {
+  const [trendingData, setTrendingData] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const viewabilityConfig = { viewAreaCoveragePercentThreshold: 50 };
 
@@ -13,6 +14,25 @@ export default function TrendingCarousel({ onPressItem }) {
       setCurrentIndex(viewableItems[0].index);
     }
   });
+
+  useEffect(() => {
+  const loadTrending = async () => {
+    const posts = await fetchTrendingPosts(5); // fetch top 5 by views
+    const formatted = posts.map((post) => ({
+      id: post.id,
+      title: post.title.rendered,
+      image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://via.placeholder.com/300',
+      category: post._embedded?.['wp:term']?.[0]?.[0]?.name || 'General',
+      content: post.content.rendered,
+      date: new Date(post.date).toDateString(),
+      author: post._embedded?.author?.[0]?.name || 'Unknown',
+      authorImage: post._embedded?.author?.[0]?.avatar_urls?.['24'] || 'https://via.placeholder.com/24',
+    }));
+    setTrendingData(formatted);
+  };
+
+  loadTrending();
+}, []);
 
   return (
     <View style={styles.container}>
@@ -23,7 +43,7 @@ export default function TrendingCarousel({ onPressItem }) {
         snapToAlignment="center"
         decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card} onPress={() => onPressItem(item)}>
             <ImageBackground
@@ -34,10 +54,9 @@ export default function TrendingCarousel({ onPressItem }) {
               <View style={styles.overlay}>
                 <View style={styles.topRow}>
                   <Text style={styles.category}>{item.category}</Text>
-                  <Text style={styles.stats}>{item.articles} articles</Text>
-                  <Text style={styles.stats}>{item.reads} reads</Text>
+                  <Text style={styles.stats}>{item.date}</Text>
                 </View>
-                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
               </View>
             </ImageBackground>
           </TouchableOpacity>

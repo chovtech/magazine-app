@@ -1,58 +1,98 @@
-import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import HeaderWithSearch from '../components/HeaderWithSearch';
-import CategoriesScroll from '../components/CategoriesScroll';
-import TrendingCarousel from '../components/TrendingCarousel';
-import RecommendedList from '../components/RecommendedList';
-import { fetchLatestPosts } from '../api/wpApi'; // ✅
+import React, { useEffect, useState } from "react";
+import { View, FlatList, StyleSheet, ActivityIndicator, Text } from "react-native";
+import HeaderWithSearch from "../components/HeaderWithSearch";
+import TrendingCarousel from "../components/TrendingCarousel";
+import RecommendedList from "../components/RecommendedList";
+import { getPosts } from "../api/db";
+import { refreshPostsInBackground } from "../api/wpApi";
 
 export default function HomeScreen({ navigation }) {
   const [recommendedData, setRecommendedData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-  const loadRecommended = async () => {
+  // Load posts from DB
+  const loadFromDB = async () => {
     try {
-      const posts = await fetchLatestPosts(10); // latest posts
-      const formatted = posts.map((post) => ({
-        id: post.id,
-        title: post.title.rendered,
-        image: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://via.placeholder.com/100',
-        category: post._embedded?.['wp:term']?.[0]?.[0]?.name || 'General',
-        author: post._embedded?.author?.[0]?.name || 'Unknown',
-        authorImage: post._embedded?.author?.[0]?.avatar_urls?.['24'] || 'https://via.placeholder.com/24',
-        date: new Date(post.date).toDateString(),
-        content: post.content.rendered,
-      }));
-      setRecommendedData(formatted);
+      setLoading(true);
+      const cachedPosts = await getPosts(10);
+      setRecommendedData(cachedPosts);
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      console.error("Error loading from DB:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  loadRecommended();
-}, []);
+  // Initial load + background refresh
+  useEffect(() => {
+    loadFromDB();
+    refreshPostsInBackground(10).then(() => {
+      loadFromDB();
+    });
+  }, []);
 
-  const handlePressItem = (item) => {
-    navigation.navigate('ArticleDetails', { article: item });
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await refreshPostsInBackground(10);
+      await loadFromDB();
+    } catch (err) {
+      console.error("Refresh failed:", err);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  return (
-    <ScrollView style={styles.container}>
+  const handlePressItem = (item) => {
+    navigation.navigate("ArticleDetails", { article: item });
+  };
+
+  const renderHeader = () => (
+    <>
       <HeaderWithSearch title="Home" />
-      {/* <CategoriesScroll /> */}
       <TrendingCarousel onPressItem={handlePressItem} />
-      <RecommendedList
-        data={recommendedData}
-        onSeeMore={() => navigation.navigate('DiscoverScreen')}
-        onPressItem={handlePressItem}
-      />
-    </ScrollView>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="green" />
+          <Text style={styles.loadingText}>Loading articles...</Text>
+        </View>
+      ) : (
+        <RecommendedList
+          data={recommendedData}
+          onSeeMore={() => navigation.navigate("DiscoverScreen")}
+          onPressItem={handlePressItem}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <FlatList
+      data={[{ key: "home-header" }]} // dummy item to render header
+      ListHeaderComponent={renderHeader}
+      keyExtractor={(item) => item.key}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  loadingText: {
+    marginTop: 6,
+    fontSize: 14,
+    color: "#888",
   },
 });

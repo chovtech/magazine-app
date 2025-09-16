@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "magazine-app-new",
-    "slug": "magazine-app-new",
+    "name": "IPCR Contemporary World Magazine",
+    "slug": "IPCR-Contemporary-World-Magazine",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,10 +20,19 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.chikeokoli.IPCRContemporaryWorldMagazine"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0d80cbb6-b1e1-4ae9-a50a-d7e93c091a77"
+      }
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
   }
 }

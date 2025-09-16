@@ -1,47 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import HeaderWithSearch from '../components/HeaderWithSearch'; // same header as other screens
-
-// Placeholder saved articles (you’ll replace with real saved data)
-const savedArticles = [
-  {
-    id: '1',
-    title: 'How to Stay Productive While Working from Home',
-    category: 'Productivity',
-    author: 'Jane Doe',
-    image: 'https://images.unsplash.com/photo-1587614382346-ac5ce068fe85?w=800&h=600&fit=crop',
-  },
-  {
-    id: '2',
-    title: 'The Future of Renewable Energy in Africa',
-    category: 'Environment',
-    author: 'John Smith',
-    image: 'https://images.unsplash.com/photo-1509395176047-4a66953fd231?w=800&h=600&fit=crop',
-  },
-  {
-    id: '3',
-    title: 'Top 10 Healthy Eating Tips',
-    category: 'Health',
-    author: 'Sarah Lee',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop',
-  },
-  {
-    id: '4',
-    title: 'Exploring the Wonders of Space Travel',
-    category: 'Science',
-    author: 'Mark Johnson',
-    image: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&h=600&fit=crop',
-  },
-  {
-    id: '5',
-    title: 'Mastering the Art of Minimalism',
-    category: 'Lifestyle',
-    author: 'Emily Davis',
-    image: 'https://images.unsplash.com/photo-1520342868574-5fa3804e551c?w=800&h=600&fit=crop',
-  },
-];
+import HeaderWithSearch from '../components/HeaderWithSearch';
+import { getSavedPosts } from "../api/db"; // Import DB function
 
 export default function SaveScreen({ navigation }) {
+  const [savedArticles, setSavedArticles] = useState([]);
+
+  // Fetch saved posts from SQLite
+  useEffect(() => {
+    const fetchSavedArticles = async () => {
+      try {
+        const posts = await getSavedPosts();
+        setSavedArticles(posts);
+      } catch (err) {
+        console.error("Failed to fetch saved articles:", err);
+      }
+    };
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchSavedArticles(); // refresh every time screen is focused
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   const renderArticle = ({ item }) => (
     <TouchableOpacity
       style={styles.articleCard}
@@ -60,12 +42,11 @@ export default function SaveScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Reusable header with screen title */}
       <HeaderWithSearch title="Saved" />
 
       <FlatList
         data={savedArticles}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={renderArticle}
         contentContainerStyle={styles.articlesList}
         showsVerticalScrollIndicator={false}

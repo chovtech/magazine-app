@@ -1,39 +1,59 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from "react";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function HeaderWithSearch({ title }) {
   const navigation = useNavigation();
-  const notificationCount = 3; // Can be dynamic later
+  const [user, setUser] = useState(null);
+  const notificationCount = 3; // later: fetch dynamically
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (e) {
+        console.error("Error loading user:", e);
+      }
+    };
+    loadUser();
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Top Row: Profile - Title - Notification */}
       <View style={styles.topRow}>
-        {/* Profile Image with navigation */}
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+        {/* Profile Image */}
+        <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
           <Image
-            source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
+            source={{
+              uri:
+                user?.avatar ||
+                "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+            }}
             style={styles.profileImage}
           />
         </TouchableOpacity>
 
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.title}>
+          {title}
+        </Text>
 
-        {/* Notification Button */}
-          <TouchableOpacity style={styles.notificationWrapper} onPress={() => navigation.navigate('Notifications')}>
-            <Ionicons name="notifications-outline" size={22} color="black" />
-            {notificationCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationText}>{notificationCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-
-
-
+        {/* Notifications */}
+        <TouchableOpacity
+          style={styles.notificationWrapper}
+          onPress={() => navigation.navigate("Notifications")}
+        >
+          <Ionicons name="notifications-outline" size={22} color="black" />
+          {notificationCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationText}>{notificationCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -41,14 +61,14 @@ export default function HeaderWithSearch({ title }) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 25, // to avoid notch
+    paddingTop: 25,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 15,
   },
   profileImage: {
@@ -58,30 +78,30 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: 'black',
+    fontWeight: "bold",
+    color: "black",
   },
   notificationWrapper: {
-    backgroundColor: '#f2f2f2',
+    backgroundColor: "#f2f2f2",
     padding: 8,
     borderRadius: 20,
-    position: 'relative',
+    position: "relative",
   },
   notificationBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 2,
     right: 2,
-    backgroundColor: 'red',
+    backgroundColor: "red",
     borderRadius: 8,
     paddingHorizontal: 4,
     paddingVertical: 1,
     minWidth: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   notificationText: {
-    color: 'white',
+    color: "white",
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

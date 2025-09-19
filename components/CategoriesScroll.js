@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 
-export default function CategoriesScroll() {
-  const categories = ['For You', 'Technology', 'Business', 'Entertainment', 'Sports', 'Health', 'Travel'];
-  const [activeCategory, setActiveCategory] = useState('For You');
-
+export default function CategoriesScroll({ categories, activeCategory, onSelect }) {
   return (
     <View style={styles.container}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -13,14 +10,14 @@ export default function CategoriesScroll() {
             key={index}
             style={[
               styles.categoryButton,
-              activeCategory === category && styles.activeCategoryButton
+              activeCategory === category && styles.activeCategoryButton,
             ]}
-            onPress={() => setActiveCategory(category)}
+            onPress={() => onSelect(category)}
           >
             <Text
               style={[
                 styles.categoryText,
-                activeCategory === category && styles.activeCategoryText
+                activeCategory === category && styles.activeCategoryText,
               ]}
             >
               {category}
@@ -49,10 +46,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   activeCategoryButton: {
-    backgroundColor: 'green', // light green background
+    backgroundColor: 'green',
   },
   activeCategoryText: {
-    color: 'white', // white text for active category
+    color: 'white',
     fontWeight: 'bold',
   },
 });

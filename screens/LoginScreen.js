@@ -7,21 +7,113 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function LoginScreen({ navigation }) {
-  const [email, setEmail] = useState("");
+export default function LoginScreen({ navigation, route }) {
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    if (email && password) {
-      // ✅ later: integrate API/auth logic
-      navigation.replace("MainTabs"); // replace so user can’t go back to login
+  const WP_BASE = "https://contemporaryworld.ipcr.gov.ng";
+
+  const handleRedirectAfterAuth = async () => {
+    const redirect = route?.params?.redirectTo;
+    if (redirect && redirect.screen) {
+      navigation.replace(redirect.screen, redirect.params || {});
     } else {
-      alert("Please enter email and password");
+      navigation.replace("MainTabs");
     }
   };
+
+ const handleLogin = async () => {
+  if (!usernameOrEmail || !password) {
+    alert("Please enter email/username and password");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    // 1) Login via JWT
+    const loginRes = await fetch(`${WP_BASE}/wp-json/jwt-auth/v1/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: usernameOrEmail,
+        password,
+      }),
+    });
+
+    const loginData = await loginRes.json();
+    if (!loginRes.ok) {
+      const msg =
+        loginData.message || loginData.error || "Login failed. Try again.";
+      alert(msg);
+      return;
+    }
+
+    const token = loginData.token;
+    await AsyncStorage.setItem("userToken", token);
+
+    // 2) Fetch WordPress profile
+    const profileRes = await fetch(`${WP_BASE}/wp-json/wp/v2/users/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    let profileData = {};
+    if (profileRes.ok) {
+      profileData = await profileRes.json();
+    }
+
+    // 3) Fetch membership info
+    const memRes = await fetch(`${WP_BASE}/wp-json/ipcr/v1/membership`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    let memData = {};
+    if (memRes.ok) {
+      memData = await memRes.json();
+    }
+
+    // 4) Build user object with merged data
+    const userObj = {
+      token,
+      user_id: profileData.id || memData.user_id || null,
+      username: profileData.slug || memData.username || usernameOrEmail,
+      email: profileData.email || memData.email || null,
+      name: profileData.name || memData.name || usernameOrEmail,
+      avatar:
+        profileData.avatar_urls?.["96"] ||
+        memData.avatar ||
+        "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+      membership_level: memData.level_id ?? 0,
+      membership_name: memData.level_name ?? "Free",
+      membership_expiry: memData.enddate ?? null,
+    };
+
+    // 5) Save user in AsyncStorage
+    await AsyncStorage.setItem("user", JSON.stringify(userObj));
+
+    // 6) Redirect
+    await handleRedirectAfterAuth();
+  } catch (err) {
+    console.error("Login Error:", err);
+    alert("Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <KeyboardAvoidingView
@@ -39,11 +131,10 @@ export default function LoginScreen({ navigation }) {
       <View style={styles.form}>
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
+          placeholder="Email or Username"
+          value={usernameOrEmail}
+          onChangeText={setUsernameOrEmail}
           autoCapitalize="none"
-          keyboardType="email-address"
         />
         <TextInput
           style={styles.input}
@@ -54,8 +145,16 @@ export default function LoginScreen({ navigation }) {
         />
 
         {/* Login Button */}
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Login</Text>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginButtonText}>Login</Text>
+          )}
         </TouchableOpacity>
 
         {/* Links */}
@@ -64,12 +163,11 @@ export default function LoginScreen({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate("Registration")}>
-            <Text style={styles.link}>
-                Don’t have an account? <Text style={{ fontWeight: "bold" }}>Sign Up</Text>
-            </Text>
+          <Text style={styles.link}>
+            Don’t have an account?{" "}
+            <Text style={{ fontWeight: "bold" }}>Sign Up</Text>
+          </Text>
         </TouchableOpacity>
-
-
       </View>
     </KeyboardAvoidingView>
   );

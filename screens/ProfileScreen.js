@@ -1,38 +1,99 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, BackHandler } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ProfileScreen({ navigation }) {
+  const [user, setUser] = useState(null);
+  const [allStorage, setAllStorage] = useState({});
+
+  const loadUser = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem("user");
+      if (storedUser) setUser(JSON.parse(storedUser));
+
+      const keys = await AsyncStorage.getAllKeys();
+      const entries = await AsyncStorage.multiGet(keys);
+      const storageObject = {};
+      entries.forEach(([key, value]) => {
+        try { storageObject[key] = JSON.parse(value); } 
+        catch { storageObject[key] = value; }
+      });
+      setAllStorage(storageObject);
+    } catch (e) {
+      console.error("Error loading storage:", e);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUser();
+
+      // Only handle back for logged-in users
+      if (!user || user.username === "guest") return;
+
+      const onBackPress = () => {
+        navigation.navigate("MainTabs");
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => subscription.remove();
+    }, [user])
+  );
+
+  // Guest view
+  // Guest view
+if (!user || user.username === "guest") {
+  return (
+    <View style={styles.guestContainer}>
+      <Ionicons name="person-circle-outline" size={120} color="green" style={{ marginBottom: 20 }} />
+      <Text style={styles.guestTitle}>Welcome, Guest!</Text>
+      <Text style={styles.guestSubtitle}>Log in or register to access your profile.</Text>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.button, styles.loginButton]}
+          onPress={() => navigation.navigate("Login")}
+        >
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, styles.registerButton]}
+          onPress={() => navigation.navigate("Registration")}
+        >
+          <Text style={styles.buttonText}>Register</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
+        style={styles.continueButton}
+        onPress={() => navigation.navigate("MainTabs", { screen: "Home" })}
+      >
+        <Text style={styles.continueButtonText}>Continue Reading</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+
+  // Logged-in user view
   const menuSections = [
     {
-      title: 'Account',
+      title: "Account",
       items: [
-        { icon: 'create-outline', title: 'Edit Profile', subtitle: 'Update your personal information' },
-        { icon: 'log-out-outline', title: 'Logout', subtitle: 'Sign out from your account' },
-        { icon: 'trash-outline', title: 'Delete Account', subtitle: 'Permanently remove your account' },
+        { icon: "create-outline", title: "Edit Profile", subtitle: "Update your personal information" },
+        { icon: "log-out-outline", title: "Logout", subtitle: "Sign out from your account" },
+        { icon: "trash-outline", title: "Delete Account", subtitle: "Permanently remove your account" },
       ],
     },
     {
-      title: 'Billing & Subscription',
+      title: "Billing & Subscription",
       items: [
-        { icon: 'card-outline', title: 'Card', subtitle: 'Manage your saved payment methods' },
-        { icon: 'close-circle-outline', title: 'Cancel Billing', subtitle: 'Stop your active subscription' },
-        { icon: 'receipt-outline', title: 'Subscription History', subtitle: 'View your past invoices' },
-      ],
-    },
-    {
-      title: 'About',
-      items: [
-        { icon: 'people-outline', title: 'About Us', subtitle: 'Learn more about our company' },
-        { icon: 'call-outline', title: 'Contact Us', subtitle: 'Get in touch with our team' },
-        { icon: 'information-circle-outline', title: 'App Info', subtitle: 'Version, build & details' },
-      ],
-    },
-    {
-      title: 'Legal & Policies',
-      items: [
-        { icon: 'lock-closed-outline', title: 'Privacy Policy', subtitle: 'How we handle your data' },
-        { icon: 'document-text-outline', title: 'Terms and Condition', subtitle: 'Read our legal agreements' },
+        { icon: "card-outline", title: "Card", subtitle: "Manage your saved payment methods" },
+        { icon: "close-circle-outline", title: "Cancel Billing", subtitle: "Stop your active subscription" },
+        { icon: "receipt-outline", title: "Subscription History", subtitle: "View your past invoices" },
       ],
     },
   ];
@@ -41,18 +102,15 @@ export default function ProfileScreen({ navigation }) {
     <View style={styles.container}>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
-        {/* Left Column - Image */}
         <View style={styles.profileImageWrapper}>
           <Image
-            source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
+            source={{ uri: user?.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png" }}
             style={styles.profileImage}
           />
         </View>
-
-        {/* Right Column - Info */}
         <View style={styles.profileInfo}>
-          <Text style={styles.userName}>Charlotte King</Text>
-          <Text style={styles.userEmail}>charlotte.king@example.com</Text>
+          <Text style={styles.userName}>{user?.name || "Guest User"}</Text>
+          <Text style={styles.userEmail}>{user?.email || "No email saved"}</Text>
         </View>
       </View>
 
@@ -66,46 +124,8 @@ export default function ProfileScreen({ navigation }) {
                 key={idx}
                 style={styles.menuItem}
                 onPress={() => {
-                  if (item.title === 'Card') 
-                    {
-                    navigation.navigate('Card');
-                  } 
-                  else if (item.title === 'Edit Profile') 
-                    {
-                    navigation.navigate('EditProfile');
-                  } 
-                  else if (item.title === 'Logout') 
-                    {
-                    navigation.navigate('Logout');
-                  }  else if (item.title === 'Delete Account') {
-                    navigation.navigate('DeleteAccount');
-                  }
-                  else if (item.title === 'Cancel Billing') {
-                      navigation.navigate('CancelBilling');
-                    }
-                    else if (item.title === 'Subscription History') {
-                      navigation.navigate('SubscriptionHistory');
-                    }
-                    else if (item.title === 'Privacy Policy') {
-                      navigation.navigate('PrivacyPolicy');
-                    }
-                    else if (item.title === 'Terms and Condition') {
-                      navigation.navigate('TermsAndConditions');
-                    }
-                    else if (item.title === 'About Us') {
-                      navigation.navigate('AboutUs');
-                    }
-                    else if (item.title === 'Contact Us') {
-                      navigation.navigate('ContactUs');
-                    }
-                    else if (item.title === 'App Info') {
-                      navigation.navigate('AppInfo');
-                    }
-
-                  else 
-                    {
-                    console.log(`Navigate to ${item.title}`);
-                  }
+                  if (item.title === "Logout") navigation.navigate("Logout");
+                  else navigation.navigate(item.title.replace(" ", ""));
                 }}
               >
                 <View style={styles.menuLeft}>
@@ -120,53 +140,86 @@ export default function ProfileScreen({ navigation }) {
             ))}
           </View>
         ))}
+
+        {/* Debug: Show all storage */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔐 Local Storage Data</Text>
+          {Object.entries(allStorage).map(([key, value]) => (
+            <View key={key} style={styles.storageItem}>
+              <Text style={styles.storageKey}>{key}</Text>
+              <Text style={styles.storageValue}>{JSON.stringify(value, null, 2)}</Text>
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f8f8' },
+  container: { flex: 1, backgroundColor: "#f8f8f8" },
   profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     paddingVertical: 25,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
-  profileImageWrapper: { position: 'relative', width: '35%', alignItems: 'center' },
+  profileImageWrapper: { position: "relative", width: "35%", alignItems: "center" },
   profileImage: { width: 100, height: 100, borderRadius: 50 },
-  editIcon: {
-    position: 'absolute',
-    bottom: 5,
-    right: 35,
-    backgroundColor: 'green',
-    borderRadius: 10,
-    padding: 4,
-  },
-  profileInfo: { flex: 1, justifyContent: 'center', paddingLeft: 15 },
-  userName: { fontSize: 22, fontWeight: 'bold', color: '#333' },
-  userEmail: { fontSize: 14, color: '#777', marginVertical: 6 },
+  profileInfo: { flex: 1, justifyContent: "center", paddingLeft: 15 },
+  userName: { fontSize: 22, fontWeight: "bold", color: "#333" },
+  userEmail: { fontSize: 14, color: "#777", marginVertical: 6 },
   scroll: { paddingHorizontal: 20 },
   section: { marginTop: 25 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 10 },
   menuItem: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 15,
     borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  menuLeft: { flexDirection: 'row', alignItems: 'center' },
+  menuLeft: { flexDirection: "row", alignItems: "center" },
   menuIcon: { marginRight: 12 },
-  menuTitle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  menuSubtitle: { fontSize: 12, color: '#777' },
+  menuTitle: { fontSize: 14, fontWeight: "bold", color: "#333" },
+  menuSubtitle: { fontSize: 12, color: "#777" },
+  storageItem: { marginBottom: 10, backgroundColor: "#fff", padding: 10, borderRadius: 6 },
+  storageKey: { fontWeight: "bold", color: "#222" },
+  storageValue: { fontSize: 12, color: "#444" },
+
+  // Guest styles
+  guestContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 30 },
+  guestTitle: { fontSize: 22, fontWeight: "bold", color: "#333", marginBottom: 8 },
+  guestSubtitle: { fontSize: 14, color: "#777", textAlign: "center", marginBottom: 25 },
+  buttonContainer: { flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: 20 },
+  button: { flex: 1, paddingVertical: 14, borderRadius: 10, marginHorizontal: 6, alignItems: "center" },
+  loginButton: { backgroundColor: "green" },
+  registerButton: { backgroundColor: "#ddd" },
+  buttonText: { fontSize: 16, fontWeight: "600", color: "#fff" },
+  continueReading: { marginTop: 10, fontSize: 14, color: "#555" },
+  
+  continueButton: {
+  marginTop: 1,
+  borderColor: "green",
+  borderRadius: 10,
+  paddingVertical: 12,
+  paddingHorizontal: 30,
+  alignItems: "center",
+  
+},
+continueButtonText: {
+  color: "green",
+  fontSize: 18,
+  fontWeight: "600",
+},
+
 });

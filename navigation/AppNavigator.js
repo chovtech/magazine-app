@@ -1,9 +1,11 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { BackHandler, Alert } from 'react-native';
+import { NavigationContainer, CommonActions, useFocusEffect } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
@@ -14,7 +16,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ArticleDetailsScreen from '../screens/ArticleDetailsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import CardScreen from "../screens/CardScreen";
-import LogoutScreen from "../screens/LogoutScreen"; // adjust path
+import LogoutScreen from "../screens/LogoutScreen";
 import DeleteAccountScreen from "../screens/DeleteAccountScreen";
 import CancelBillingScreen from "../screens/CancelBillingScreen";
 import SubscriptionHistoryScreen from "../screens/SubscriptionHistoryScreen";
@@ -28,12 +30,41 @@ import LoginScreen from "../screens/LoginScreen";
 import RegistrationScreen from "../screens/RegistrationScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 
-
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function BottomTabs() {
   const insets = useSafeAreaInsets();
+  const [user, setUser] = useState(null);
+
+  // Load user info
+  useEffect(() => {
+    const loadUser = async () => {
+      const storedUser = await AsyncStorage.getItem("user");
+      if (storedUser) setUser(JSON.parse(storedUser));
+    };
+    loadUser();
+  }, []);
+
+  // Handle hardware back button on Home tab
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert(
+          "Exit App",
+          "Do you want to exit?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Exit", onPress: () => BackHandler.exitApp() },
+          ],
+          { cancelable: true }
+        );
+        return true; // prevent default behavior
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [])
+  );
 
   return (
     <Tab.Navigator
@@ -49,15 +80,10 @@ function BottomTabs() {
         tabBarInactiveTintColor: 'gray',
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Discover') {
-            iconName = focused ? 'compass' : 'compass-outline';
-          } else if (route.name === 'Save') {
-            iconName = focused ? 'bookmark' : 'bookmark-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
+          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
+          else if (route.name === 'Discover') iconName = focused ? 'compass' : 'compass-outline';
+          else if (route.name === 'Save') iconName = focused ? 'bookmark' : 'bookmark-outline';
+          else if (route.name === 'Profile' || route.name === 'Login') iconName = focused ? 'person' : 'person-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
@@ -65,8 +91,11 @@ function BottomTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Discover" component={DiscoverScreen} />
       <Tab.Screen name="Save" component={SaveScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Login" component={LoginScreen} />
+      {user && user.username !== 'guest' ? (
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      ) : (
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      )}
     </Tab.Navigator>
   );
 }
@@ -93,8 +122,6 @@ export default function AppNavigator() {
         <Stack.Screen name="Registration" component={RegistrationScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="DiscoverScreen" component={DiscoverScreen} />
-        
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function HeaderWithSearch({ title }) {
@@ -9,19 +9,26 @@ export default function HeaderWithSearch({ title }) {
   const [user, setUser] = useState(null);
   const notificationCount = 3; // later: fetch dynamically
 
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+  // Reload user data whenever this header's screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+      const loadUser = async () => {
+        try {
+          const storedUser = await AsyncStorage.getItem("user");
+          if (storedUser && isActive) {
+            setUser(JSON.parse(storedUser));
+          }
+        } catch (e) {
+          console.error("Error loading user:", e);
         }
-      } catch (e) {
-        console.error("Error loading user:", e);
-      }
-    };
-    loadUser();
-  }, []);
+      };
+      loadUser();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -38,9 +45,7 @@ export default function HeaderWithSearch({ title }) {
           />
         </TouchableOpacity>
 
-        <Text style={styles.title}>
-          {title}
-        </Text>
+        <Text style={styles.title}>{title}</Text>
 
         {/* Notifications */}
         <TouchableOpacity
@@ -50,7 +55,9 @@ export default function HeaderWithSearch({ title }) {
           <Ionicons name="notifications-outline" size={22} color="black" />
           {notificationCount > 0 && (
             <View style={styles.notificationBadge}>
-              <Text style={styles.notificationText}>{notificationCount}</Text>
+              <Text style={styles.notificationText}>
+                {notificationCount}
+              </Text>
             </View>
           )}
         </TouchableOpacity>

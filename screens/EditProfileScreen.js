@@ -13,11 +13,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 
 export default function EditProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
 
-  // form state
+  // form state (we're using single fullName per your request)
   const [fullName, setFullName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,7 +31,6 @@ export default function EditProfileScreen({ navigation }) {
 
   const [loading, setLoading] = useState(false);
 
-  // Load user profile from AsyncStorage
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -42,7 +42,6 @@ export default function EditProfileScreen({ navigation }) {
           setEmail(parsed.email || "");
           setDisplayName(parsed.name || parsed.username || "");
           setFullName(parsed.first_name || parsed.name || "");
-
           setAvatar(parsed.avatar || null);
         }
       } catch (error) {
@@ -51,6 +50,114 @@ export default function EditProfileScreen({ navigation }) {
     };
     loadProfile();
   }, []);
+
+  // helper: extract file extension and mime type from URI
+  const getFileInfo = (uri) => {
+    try {
+      const cleanUri = uri.split("?")[0];
+      const parts = cleanUri.split(".");
+      const ext = parts[parts.length - 1].toLowerCase();
+      const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : `image/${ext}`;
+      const name = `avatar_${Date.now()}.${ext}`;
+      return { name, type: mime };
+    } catch (e) {
+      return { name: `avatar_${Date.now()}.jpg`, type: "image/jpeg" };
+    }
+  };
+
+  // PICK + UPLOAD avatar
+  const pickAndUploadImage = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow access to your photos.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) return; // user cancelled
+
+      const asset = result.assets && result.assets[0] ? result.assets[0] : null;
+      if (!asset || !asset.uri) {
+        Alert.alert("Error", "No image selected.");
+        return;
+      }
+
+      const uri = asset.uri;
+      setLoading(true);
+
+      const storedUser = await AsyncStorage.getItem("user");
+      if (!storedUser) {
+        Alert.alert("Error", "You must be logged in");
+        setLoading(false);
+        return;
+      }
+
+      const parsedUser = JSON.parse(storedUser);
+      const token = parsedUser.token;
+      if (!token) {
+        Alert.alert("Error", "Invalid user session");
+        setLoading(false);
+        return;
+      }
+
+      const { name, type } = getFileInfo(uri);
+      const formData = new FormData();
+      // field name: 'avatar' — adjust if your WP endpoint expects a different field name
+      formData.append("avatar", { uri, name, type });
+
+      // NOTE: do NOT set Content-Type header manually here (RN needs to add boundary)
+      const response = await fetch(
+        "https://contemporaryworld.ipcr.gov.ng/wp-json/ipcr/v1/update-avatar",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Upload response", data);
+        Alert.alert("Upload failed", data?.message || "Failed to upload image");
+        setLoading(false);
+        return;
+      }
+
+      // backend may return avatar URL in different places — try common fields
+      const newAvatar =
+        data.avatar_url ||
+        data.avatar ||
+        data.user?.avatar ||
+        data.user?.avatar_url ||
+        null;
+
+      const updatedUser = {
+        ...parsedUser,
+        avatar: newAvatar || parsedUser.avatar,
+      };
+
+      await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      setAvatar(updatedUser.avatar);
+
+      Alert.alert("Success", "Profile photo updated!");
+    } catch (err) {
+      console.error("Avatar update error:", err);
+      Alert.alert("Error", "Something went wrong while updating avatar");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (newPassword && newPassword !== confirmPassword) {
@@ -86,7 +193,7 @@ export default function EditProfileScreen({ navigation }) {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            first_name: fullName, // 👈 treat fullName as first_name
+            first_name: fullName, // treating fullName as first_name on WP
             display_name: displayName,
             email: email,
             current_password: currentPassword || undefined,
@@ -103,7 +210,7 @@ export default function EditProfileScreen({ navigation }) {
         return;
       }
 
-      // ✅ Update local storage
+      // update local storage while preserving token and other fields
       const updatedUser = {
         ...parsedUser,
         email: email,
@@ -128,113 +235,55 @@ export default function EditProfileScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            >
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Edit Profile</Text>
           </View>
 
-          {/* Profile Image */}
+          {/* Profile Image with camera icon */}
           <View style={styles.imageWrapper}>
-            <Image
-              source={{
-                uri:
-                  avatar ||
-                  "https://via.placeholder.com/120x120.png?text=No+Image",
-              }}
-              style={styles.profileImage}
-            />
-            <TouchableOpacity style={styles.editIcon}>
-              <Ionicons name="camera" size={18} color="#fff" />
+            <Image source={{ uri: avatar || "https://via.placeholder.com/120x120.png?text=No+Image" }} style={styles.profileImage} />
+            <TouchableOpacity style={styles.editIcon} onPress={pickAndUploadImage} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Ionicons name="camera" size={18} color="#fff" />}
             </TouchableOpacity>
           </View>
 
           {/* Header Info */}
           <View style={{ alignItems: "center", marginBottom: 20 }}>
-            <Text style={{ fontSize: 18, fontWeight: "600" }}>
-              {fullName || displayName || user?.username}
-            </Text>
+            <Text style={{ fontSize: 18, fontWeight: "600" }}>{fullName || displayName || user?.username}</Text>
             <Text style={{ fontSize: 14, color: "#555" }}>{email}</Text>
           </View>
 
           {/* Form Fields */}
           <View style={styles.form}>
             <Text style={styles.label}>Full Name</Text>
-            <TextInput
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Enter your full name"
-            />
+            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Enter your full name" />
 
             <Text style={styles.label}>Display Name</Text>
-            <TextInput
-              style={styles.input}
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder="Enter your display name"
-            />
+            <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Enter your display name" />
 
             <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholder="Enter your email"
-            />
+            <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="Enter your email" />
 
             <Text style={styles.label}>Current Password</Text>
-            <TextInput
-              style={styles.input}
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry
-              placeholder="Enter current password"
-            />
+            <TextInput style={styles.input} value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry placeholder="Enter current password" />
 
             <Text style={styles.label}>New Password</Text>
-            <TextInput
-              style={styles.input}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-              placeholder="Enter new password"
-            />
+            <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} secureTextEntry placeholder="Enter new password" />
 
             <Text style={styles.label}>Confirm New Password</Text>
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              placeholder="Re-enter new password"
-            />
+            <Text style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry placeholder="Re-enter new password" />
           </View>
         </ScrollView>
 
         {/* Save Button */}
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.saveButton, loading && { opacity: 0.6 }]}
-            onPress={handleSave}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveText}>Save Changes</Text>
-            )}
+          <TouchableOpacity style={[styles.saveButton, loading && { opacity: 0.6 }]} onPress={handleSave} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save Changes</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -249,47 +298,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   backButton: { marginRight: 10, padding: 5 },
   headerTitle: { fontSize: 18, fontWeight: "600", color: "#333" },
-  imageWrapper: {
-    alignSelf: "center",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-    position: "relative",
-    width: 120,
-    height: 120,
-  },
+  imageWrapper: { alignSelf: "center", justifyContent: "center", alignItems: "center", marginBottom: 10, position: "relative", width: 120, height: 120 },
   profileImage: { width: 120, height: 120, borderRadius: 60 },
-  editIcon: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "green",
-    borderRadius: 20,
-    padding: 6,
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
+  editIcon: { position: "absolute", bottom: 0, right: 0, backgroundColor: "green", borderRadius: 20, padding: 6, borderWidth: 2, borderColor: "#fff" },
   form: { marginTop: 10 },
   label: { fontSize: 14, fontWeight: "600", marginTop: 15, color: "#333" },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 6,
-    fontSize: 16,
-  },
-  footer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
-  },
-  saveButton: {
-    backgroundColor: "green",
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: "center",
-  },
+  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, marginTop: 6, fontSize: 16 },
+  footer: { padding: 20, borderTopWidth: 1, borderColor: "#eee", backgroundColor: "#fff" },
+  saveButton: { backgroundColor: "green", paddingVertical: 15, borderRadius: 10, alignItems: "center" },
   saveText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });

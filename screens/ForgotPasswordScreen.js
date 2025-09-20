@@ -7,20 +7,45 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function ForgotPasswordScreen({ navigation }) {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!email) {
-      alert("Please enter your email address");
+      Alert.alert("Error", "Please enter your email address");
       return;
     }
-    // ✅ Later: Add API call for reset password
-    alert("Password reset link has been sent to your email");
-    navigation.navigate("Login"); // redirect back to login
+
+    setLoading(true);
+    try {
+      const response = await fetch("https://contemporaryworld.ipcr.gov.ng/wp-json/ipcr/v1/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        Alert.alert("Success", data.message || "Password reset link sent to your email.");
+        navigation.navigate("Login");
+      } else {
+        Alert.alert("Error", data.message || "Unable to send reset link.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Something went wrong. Please try again later.");
+      console.error("Reset password error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,8 +73,16 @@ export default function ForgotPasswordScreen({ navigation }) {
           keyboardType="email-address"
         />
 
-        <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-          <Text style={styles.resetButtonText}>Send Reset Link</Text>
+        <TouchableOpacity
+          style={[styles.resetButton, loading && { opacity: 0.7 }]}
+          onPress={handleReset}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.resetButtonText}>Send Reset Link</Text>
+          )}
         </TouchableOpacity>
 
         {/* Back to Login */}

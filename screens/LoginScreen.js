@@ -71,7 +71,7 @@ export default function LoginScreen({ navigation, route }) {
       profileData = await profileRes.json();
     }
 
-    // 3) Fetch membership info
+    // 3) Fetch membership info (which now includes custom avatar)
     const memRes = await fetch(`${WP_BASE}/wp-json/ipcr/v1/membership`, {
       method: "GET",
       headers: {
@@ -93,8 +93,8 @@ export default function LoginScreen({ navigation, route }) {
       email: profileData.email || memData.email || null,
       name: profileData.name || memData.name || usernameOrEmail,
       avatar:
+        memData.avatar || // ✅ custom avatar first
         profileData.avatar_urls?.["96"] ||
-        memData.avatar ||
         "https://cdn-icons-png.flaticon.com/512/149/149071.png",
       membership_level: memData.level_id ?? 0,
       membership_name: memData.level_name ?? "Free",
@@ -113,6 +113,7 @@ export default function LoginScreen({ navigation, route }) {
     setLoading(false);
   }
 };
+
 
 
   return (

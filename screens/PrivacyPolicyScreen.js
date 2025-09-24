@@ -1,8 +1,46 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import RenderHTML from 'react-native-render-html';
+import { syncSettings, getSettings } from "../api/storageService";
 
 export default function PrivacyPolicyScreen({ navigation }) {
+  const [privacyContent, setPrivacyContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { width } = Dimensions.get('window');
+
+  // clean HTML from API
+  const cleanHTML = (raw) => {
+    if (!raw) return "";
+    return raw
+      .replace(/\\r\\n/g, "")   // remove line breaks
+      .replace(/\\"/g, '"');    // unescape quotes
+  };
+
+  useEffect(() => {
+    async function loadData() {
+      // Try to sync with API (updates AsyncStorage if needed)
+      const updated = await syncSettings();
+      if (updated?.data?.privacy) {
+        setPrivacyContent(cleanHTML(updated.data.privacy));
+      } else {
+        // fallback: just get from storage
+        const stored = await getSettings();
+        setPrivacyContent(cleanHTML(stored?.data?.privacy) || "<p>No Privacy Policy found.</p>");
+      }
+      setLoading(false);
+    }
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#333" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Top Header with Back Arrow + Privacy Icon */}
@@ -18,45 +56,22 @@ export default function PrivacyPolicyScreen({ navigation }) {
 
       {/* Content */}
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.paragraph}>
-          Welcome to our Privacy Policy page. Your privacy is important to us.
-        </Text>
-
-        <Text style={styles.sectionTitle}>1. Information We Collect</Text>
-        <Text style={styles.paragraph}>
-          We may collect personal information such as your name, email address,
-          phone number, and payment details when you use our services.
-        </Text>
-
-        <Text style={styles.sectionTitle}>2. How We Use Your Information</Text>
-        <Text style={styles.paragraph}>
-          We use the information to provide and improve our services, process
-          payments, and communicate with you regarding updates and offers.
-        </Text>
-
-        <Text style={styles.sectionTitle}>3. Data Security</Text>
-        <Text style={styles.paragraph}>
-          We implement strict security measures to protect your information from
-          unauthorized access, disclosure, or misuse.
-        </Text>
-
-        <Text style={styles.sectionTitle}>4. Sharing of Information</Text>
-        <Text style={styles.paragraph}>
-          We do not sell or rent your personal data. We may share information
-          only with trusted third-party service providers as necessary.
-        </Text>
-
-        <Text style={styles.sectionTitle}>5. Changes to This Policy</Text>
-        <Text style={styles.paragraph}>
-          We may update this policy from time to time. Any changes will be
-          posted on this page with an updated revision date.
-        </Text>
-
-        <Text style={styles.sectionTitle}>6. Contact Us</Text>
-        <Text style={styles.paragraph}>
-          If you have questions about this Privacy Policy, please contact us at
-          support@example.com.
-        </Text>
+        {privacyContent ? (
+          <RenderHTML
+            contentWidth={width - 40}
+            source={{ html: privacyContent }}
+            tagsStyles={{
+              h1: { fontSize: 22, fontWeight: "bold", marginVertical: 10, color: "#222" },
+              h2: { fontSize: 18, fontWeight: "bold", marginTop: 12, marginBottom: 6, color: "#444" },
+              p: { fontSize: 14, lineHeight: 22, color: "#555", marginBottom: 10 },
+              strong: { fontWeight: "bold", color: "#000" },
+              ul: { marginVertical: 8, paddingLeft: 20 },
+              li: { fontSize: 14, lineHeight: 22, color: "#555" }
+            }}
+          />
+        ) : (
+          <Text style={styles.paragraph}>No Privacy Policy available.</Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -72,6 +87,5 @@ const styles = StyleSheet.create({
   },
   backButton: { padding: 5 },
   header: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginTop: 15, color: '#222' },
   paragraph: { fontSize: 14, lineHeight: 22, color: '#555', marginTop: 6 },
 });

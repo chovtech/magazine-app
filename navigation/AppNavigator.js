@@ -29,6 +29,9 @@ import NotificationScreen from "../screens/NotificationScreen";
 import LoginScreen from "../screens/LoginScreen";
 import RegistrationScreen from "../screens/RegistrationScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
+import SupportScreen from "../screens/SupportScreen";
+import PartnershipScreen from '../screens/PartnershipScreen';
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -109,7 +112,7 @@ export default function AppNavigator() {
         <Stack.Screen name="ArticleDetails" component={ArticleDetailsScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="Logout" component={LogoutScreen} />   
-        <Stack.Screen name="Card" component={CardScreen} />
+        <Stack.Screen name="Subscription" component={CardScreen} />
         <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
         <Stack.Screen name="CancelBilling" component={CancelBillingScreen} />
         <Stack.Screen name="SubscriptionHistory" component={SubscriptionHistoryScreen} />
@@ -117,6 +120,8 @@ export default function AppNavigator() {
         <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
         <Stack.Screen name="AboutUs" component={AboutUsScreen} />
         <Stack.Screen name="ContactUs" component={ContactUsScreen} />
+        <Stack.Screen name="Support" component={SupportScreen} />
+        <Stack.Screen name="Partnerships" component={PartnershipScreen} />
         <Stack.Screen name="AppInfo" component={AppInfoScreen} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
         <Stack.Screen name="Registration" component={RegistrationScreen} />

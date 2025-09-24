@@ -127,19 +127,15 @@ export default function ProfileScreen({ navigation }) {
       items: [
         {
           icon: "card-outline",
-          title: "Card",
-          subtitle: "Manage your saved payment methods",
+          title: "Subscription",
+          subtitle: "Manage your subscription plan",
         },
         {
           icon: "close-circle-outline",
           title: "Cancel Billing",
           subtitle: "Stop your active subscription",
         },
-        {
-          icon: "receipt-outline",
-          title: "Subscription History",
-          subtitle: "View your past invoices",
-        },
+        
       ],
     },
     { 
@@ -152,7 +148,7 @@ export default function ProfileScreen({ navigation }) {
         }, 
         { 
           icon: 'document-text-outline', 
-          title: 'Terms and Condition', 
+          title: 'TermsAndConditions', 
           subtitle: 'Read our legal agreements' 
         }, 
       ], 
@@ -161,15 +157,16 @@ export default function ProfileScreen({ navigation }) {
       title: 'About', 
       items: [ 
         { 
+          icon: 'people-outline', 
+          title: 'About Us', 
+          subtitle: 'Learn more about our company' 
+        }, 
+        { 
           icon: 'information-circle-outline', 
           title: 'App Info', 
           subtitle: 'Version, build & details' 
         }, 
-        { 
-          icon: 'people-outline', 
-          title: 'Summary About Us', 
-          subtitle: 'Learn more about our company' 
-        }, 
+        
       ], 
     }, 
     { 
@@ -177,12 +174,12 @@ export default function ProfileScreen({ navigation }) {
       items: [ 
         { 
           icon: 'call-outline', 
-          title: 'Contact', 
+          title: 'ContactUs', 
           subtitle: 'Get in touch with our team' 
         }, 
         { 
           icon: 'headset-outline', 
-          title: 'Support Line', 
+          title: 'Support', 
           subtitle: '24/7 customer service' 
         },
            { 
@@ -250,7 +247,7 @@ export default function ProfileScreen({ navigation }) {
         ))}
 
         {/* Debug: Show all storage */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>🔐 Local Storage Data</Text>
           {Object.entries(allStorage).map(([key, value]) => (
             <View key={key} style={styles.storageItem}>
@@ -260,7 +257,7 @@ export default function ProfileScreen({ navigation }) {
               </Text>
             </View>
           ))}
-        </View>
+        </View> */}
       </ScrollView>
     </View>
   );

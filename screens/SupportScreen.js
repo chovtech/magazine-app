@@ -1,12 +1,12 @@
-// AppInfoScreen.js
+// SupportScreen.js
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RenderHTML from 'react-native-render-html';
 import { syncSettings, getSettings } from "../api/storageService";
 
-export default function AppInfoScreen({ navigation }) {
-  const [appInfoContent, setAppInfoContent] = useState(null);
+export default function SupportScreen({ navigation }) {
+  const [supportContent, setSupportContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const { width } = Dimensions.get('window');
 
@@ -20,14 +20,12 @@ export default function AppInfoScreen({ navigation }) {
 
   useEffect(() => {
     async function loadData() {
-      // Try to sync with API
       const updated = await syncSettings();
-      if (updated?.data?.app_info) {
-        setAppInfoContent(cleanHTML(updated.data.app_info));
+      if (updated?.data?.support) {
+        setSupportContent(cleanHTML(updated.data.support));
       } else {
-        // fallback to storage
         const stored = await getSettings();
-        setAppInfoContent(cleanHTML(stored?.data?.app_info) || "<p>No App Info available.</p>");
+        setSupportContent(cleanHTML(stored?.data?.support) || "<p>No Support Info available.</p>");
       }
       setLoading(false);
     }
@@ -49,16 +47,16 @@ export default function AppInfoScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.header}>App Info</Text>
-        <Ionicons name="apps-outline" size={26} color="#333" />
+        <Text style={styles.header}>Support</Text>
+        <Ionicons name="help-circle-outline" size={26} color="#333" />
       </View>
 
       {/* Content */}
       <ScrollView showsVerticalScrollIndicator={false}>
-        {appInfoContent ? (
+        {supportContent ? (
           <RenderHTML
             contentWidth={width - 40}
-            source={{ html: appInfoContent }}
+            source={{ html: supportContent }}
             tagsStyles={{
               h1: { fontSize: 22, fontWeight: "bold", marginVertical: 10, color: "#222" },
               h2: { fontSize: 18, fontWeight: "bold", marginTop: 12, marginBottom: 6, color: "#444" },
@@ -69,7 +67,7 @@ export default function AppInfoScreen({ navigation }) {
             }}
           />
         ) : (
-          <Text style={styles.paragraph}>No App Info available.</Text>
+          <Text style={styles.text}>No Support Info available.</Text>
         )}
       </ScrollView>
     </View>
@@ -81,5 +79,5 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   backButton: { padding: 5 },
   header: { fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', color: '#333' },
-  paragraph: { fontSize: 14, lineHeight: 22, color: '#555', marginTop: 6 },
+  text: { fontSize: 16, marginBottom: 15, color: '#444' },
 });

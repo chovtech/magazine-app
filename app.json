@@ -23,6 +23,10 @@
       "edgeToEdgeEnabled": true,
       "package": "com.chikeokoli.IPCRContemporaryWorldMagazine"
     },
+    "notification": {
+      "icon": "./assets/splash-icon.png",
+      "color": "#4CAF50"
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },

@@ -1,13 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NotificationContext } from "../screens/NotificationContext"; // ✅ NEW
 
 export default function HeaderWithSearch({ title }) {
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
-  const notificationCount = 3; // later: fetch dynamically
+  const { notifications } = useContext(NotificationContext); // ✅ get notifications
+
+  // compute unread notifications
+  const notificationCount = notifications.filter((n) => !n.read).length;
 
   // Reload user data whenever this header's screen comes into focus
   useFocusEffect(
@@ -55,9 +59,7 @@ export default function HeaderWithSearch({ title }) {
           <Ionicons name="notifications-outline" size={22} color="black" />
           {notificationCount > 0 && (
             <View style={styles.notificationBadge}>
-              <Text style={styles.notificationText}>
-                {notificationCount}
-              </Text>
+              <Text style={styles.notificationText}>{notificationCount}</Text>
             </View>
           )}
         </TouchableOpacity>

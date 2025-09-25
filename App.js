@@ -1,3 +1,4 @@
+// App.js
 import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View, ActivityIndicator } from "react-native";
@@ -6,18 +7,52 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppNavigator from "./navigation/AppNavigator";
 import { useFonts } from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
-import { initDB } from "./api/db"; // ✅ import initDB
+import { initDB } from "./api/db";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants"; // ✅ needed for version check
+import { NotificationProvider } from "./screens/NotificationContext";
+import UpdateModal from "./screens/UpdateModal"; // ✅ reuse UpdateModal
+
+// Notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function App() {
   const [fontsLoaded] = useFonts(Ionicons.font);
   const [dbReady, setDbReady] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(false);
+  const [updateUrl, setUpdateUrl] = useState("");
 
   useEffect(() => {
     async function setup() {
-      await initDB(); // ✅ make sure DB is ready
+      await initDB();
       setDbReady(true);
     }
     setup();
+
+    // ✅ Version check
+    const checkVersion = async () => {
+      try {
+        const response = await fetch("https://contemporaryworld.ipcr.gov.ng/wp-json/app-update/v1/version"); // replace with your endpoint
+        const data = await response.json();
+        const latestVersion = data.latestVersion;
+        const storeUrl = data.url;
+
+        if (Constants.expoConfig.version !== latestVersion) {
+          setUpdateUrl(storeUrl);
+          setForceUpdate(true);
+        }
+      } catch (error) {
+        console.log("Version check failed", error);
+      }
+    };
+
+    checkVersion();
   }, []);
 
   if (!fontsLoaded || !dbReady) {
@@ -38,7 +73,13 @@ export default function App() {
     <SafeAreaProvider>
       <GestureHandlerRootView style={styles.container}>
         <View style={styles.statusBarBackground} />
-        <AppNavigator />
+
+        {/* 🚨 Force Update Modal (blocks everything else) */}
+        <UpdateModal visible={forceUpdate} updateUrl={updateUrl} />
+
+        <NotificationProvider>
+          <AppNavigator />
+        </NotificationProvider>
         <StatusBar style="light" />
       </GestureHandlerRootView>
     </SafeAreaProvider>
@@ -46,10 +87,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0E0316",
-  },
+  container: { flex: 1, backgroundColor: "#0E0316" },
   statusBarBackground: {
     height: StatusBar.currentHeight || 24,
     backgroundColor: "#0E0316",

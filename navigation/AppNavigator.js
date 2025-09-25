@@ -31,6 +31,10 @@ import RegistrationScreen from "../screens/RegistrationScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import SupportScreen from "../screens/SupportScreen";
 import PartnershipScreen from '../screens/PartnershipScreen';
+import NotificationDetail from "../screens/NotificationDetail"; // adjust path
+
+
+
 
 
 const Tab = createBottomTabNavigator();
@@ -127,6 +131,8 @@ export default function AppNavigator() {
         <Stack.Screen name="Registration" component={RegistrationScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="NotificationDetail" component={NotificationDetail} options={{ headerShown: false }} 
+/>
       </Stack.Navigator>
     </NavigationContainer>
   );

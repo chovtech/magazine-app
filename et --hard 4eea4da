@@ -1,0 +1,26 @@
+[33m01d379c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/sqlite-storage[m[33m)[m HEAD@{0}: commit (merge): Merge branch 'main' of github.com:chovtech/magazine-app into feature/sqlite-storage
+[33m4eea4da[m HEAD@{1}: commit: WIP: before upgrading to Expo SDK 54
+[33m81479f1[m[33m ([m[1;31morigin/feature/api-integration[m[33m, [m[1;32mmain[m[33m, [m[1;32mfeature/api-integration[m[33m)[m HEAD@{2}: checkout: moving from main to feature/sqlite-storage
+[33m81479f1[m[33m ([m[1;31morigin/feature/api-integration[m[33m, [m[1;32mmain[m[33m, [m[1;32mfeature/api-integration[m[33m)[m HEAD@{3}: reset: moving to feature/api-integration
+[33m1ce2b04[m HEAD@{4}: checkout: moving from feature/api-integration to main
+[33m81479f1[m[33m ([m[1;31morigin/feature/api-integration[m[33m, [m[1;32mmain[m[33m, [m[1;32mfeature/api-integration[m[33m)[m HEAD@{5}: commit: feat: integrate WordPress API and display fetched data
+[33m1ce2b04[m HEAD@{6}: checkout: moving from main to feature/api-integration
+[33m1ce2b04[m HEAD@{7}: commit: Final UI updates and screens added
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{8}: checkout: moving from discovery-page-updated to main
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{9}: checkout: moving from feature/home-and-details to discovery-page-updated
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{10}: checkout: moving from main to feature/home-and-details
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{11}: checkout: moving from feature/home-and-details to main
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{12}: checkout: moving from main to feature/home-and-details
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{13}: merge feature/home-and-details: Fast-forward
+[33m6fb6f97[m[33m ([m[1;31morigin/navigation[m[33m, [m[1;32mnavigation[m[33m)[m HEAD@{14}: checkout: moving from feature/home-and-details to main
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{15}: checkout: moving from main to feature/home-and-details
+[33m6fb6f97[m[33m ([m[1;31morigin/navigation[m[33m, [m[1;32mnavigation[m[33m)[m HEAD@{16}: checkout: moving from feature/home-and-details to main
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{17}: checkout: moving from navigation to feature/home-and-details
+[33m6fb6f97[m[33m ([m[1;31morigin/navigation[m[33m, [m[1;32mnavigation[m[33m)[m HEAD@{18}: checkout: moving from feature/home-and-details to navigation
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{19}: checkout: moving from feature/home-and-details to feature/home-and-details
+[33m91c1af4[m[33m ([m[1;31morigin/feature/home-and-details[m[33m, [m[1;32mfeature/home-and-details[m[33m, [m[1;32mdiscovery-page-updated[m[33m)[m HEAD@{20}: commit: Completed HomeScreen and ArticleDetailsScreen with navigation and save icon update
+[33m6fb6f97[m[33m ([m[1;31morigin/navigation[m[33m, [m[1;32mnavigation[m[33m)[m HEAD@{21}: checkout: moving from navigation to feature/home-and-details
+[33m6fb6f97[m[33m ([m[1;31morigin/navigation[m[33m, [m[1;32mnavigation[m[33m)[m HEAD@{22}: checkout: moving from main to navigation
+[33m6fb6f97[m[33m ([m[1;31morigin/navigation[m[33m, [m[1;32mnavigation[m[33m)[m HEAD@{23}: Branch: renamed refs/heads/main to refs/heads/main
+[33m6fb6f97[m[33m ([m[1;31morigin/navigation[m[33m, [m[1;32mnavigation[m[33m)[m HEAD@{25}: commit: Initial commit: onboarding implemented
+[33m1c9befa[m HEAD@{26}: commit (initial): Initial commit

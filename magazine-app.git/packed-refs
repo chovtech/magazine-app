@@ -1,0 +1,9 @@
+# pack-refs with: peeled fully-peeled sorted 
+81479f14b5bc4517d8bcc07b3559a6a78a78feb8 refs/heads/feature/api-integration
+881e843c0dcc3c18b38516af58fa9929b955c6d8 refs/heads/feature/delete-account
+91c1af4cc0e60a6a77b002641acd0c0ab466c4c0 refs/heads/feature/home-and-details
+4c392e99a3818b92dce61044aef9bc2fd37cd83c refs/heads/feature/reset-password-edit-profile-photo
+356596e01e6033c6a34b422f801df806200a353b refs/heads/main
+6fb6f971e809587c9b9ad9521e59c901b032cc47 refs/heads/navigation
+91c1af4cc0e60a6a77b002641acd0c0ab466c4c0 refs/pull/1/head
+81479f14b5bc4517d8bcc07b3559a6a78a78feb8 refs/pull/2/head

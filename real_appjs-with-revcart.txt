@@ -10,10 +10,8 @@ import { initDB } from "./api/db";
 import Constants from "expo-constants";
 import { NotificationProvider } from "./screens/NotificationContext";
 import UpdateModal from "./screens/UpdateModal";
-import { safeFetch } from "./utils/fetchWrapper";
-
-// 🚨 Removed Purchases import – no RevenueCat for mock
-// import Purchases from "react-native-purchases"; 
+import { safeFetch } from "./utils/fetchWrapper"; 
+import Purchases from "react-native-purchases"; // ✅ import RevenueCat
 
 function MainApp() {
   const [dbReady, setDbReady] = useState(false);
@@ -46,12 +44,14 @@ function MainApp() {
       } catch (error) {
         console.log("⚠️ Version check failed", error.message);
       }
-
-      // 🚨 Mock RevenueCat init
-      console.log("🔄 [MOCK] RevenueCat initialization skipped – using fake subscription flow.");
     }
 
     setup();
+
+    // ✅ Initialize RevenueCat once
+    Purchases.configure({
+      apiKey: "goog_GbBsxPvQBsvjnRqxuttXrttBNYW", // your public API key
+    });
   }, []);
 
   if (!dbReady) {

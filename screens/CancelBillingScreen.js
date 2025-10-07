@@ -1,48 +1,75 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function CancelBillingScreen({ navigation }) {
-  const handleCancelBilling = () => {
-    Alert.alert(
-      "Cancel Subscription",
-      "Are you sure you want to cancel your billing plan? You may lose access to premium features.",
-      [
-        { text: "Keep Plan", style: "cancel" },
-        { 
-          text: "Cancel Plan", 
-          style: "destructive",
-          onPress: () => {
-            console.log("Billing Cancelled");
-            navigation.replace("Login"); // Or go back to Home
-          }
-        }
-      ]
-    );
+  const handleManageSubscription = () => {
+    // Open App Store / Play Store subscription management
+    const url =
+      Platform.OS === "ios"
+        ? "https://apps.apple.com/account/subscriptions"
+        : "https://play.google.com/store/account/subscriptions";
+    
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) Linking.openURL(url);
+        else Alert.alert("Error", "Unable to open subscription page.");
+      })
+      .catch((err) => console.error("An error occurred", err));
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Cancel Billing</Text>
-      <Text style={styles.subtitle}>
-        Cancelling your billing will stop all future charges. You can re-subscribe anytime.
-      </Text>
+      {/* Header Bar */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+          <Ionicons name="arrow-back" size={24} color="#2a5298" />
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.cancelButton} onPress={handleCancelBilling}>
-        <Text style={styles.cancelText}>Cancel My Billing</Text>
-      </TouchableOpacity>
+        <Text style={styles.headerTitle}>Manage Subscription</Text>
+
+        <TouchableOpacity onPress={() => Alert.alert("Info", "Need help? Contact support.")}>
+          <Ionicons name="information-circle-outline" size={24} color="#2a5298" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Main Content */}
+      <View style={styles.content}>
+        <Text style={styles.subtitle}>
+          To cancel or upgrade your subscription, please manage it directly in your App Store or Play Store account. 
+        </Text>
+
+        <TouchableOpacity style={styles.manageButton} onPress={handleManageSubscription}>
+          <Text style={styles.manageText}>Manage Subscription</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20, justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#c00', marginBottom: 10 },
-  subtitle: { fontSize: 14, color: '#555', marginBottom: 30 },
-  cancelButton: {
-    backgroundColor: 'orange',
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
+  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 50 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 30,
   },
-  cancelText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  iconButton: { padding: 5 },
+  headerTitle: { fontSize: 18, fontWeight: "bold", color: "#2a5298" },
+  content: { flex: 1, justifyContent: "center" },
+  subtitle: {
+    fontSize: 15,
+    color: "#555",
+    lineHeight: 22,
+    marginBottom: 35,
+    textAlign: "center",
+  },
+  manageButton: {
+    backgroundColor: "#2a5298",
+    paddingVertical: 16,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  manageText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });

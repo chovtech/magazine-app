@@ -2,7 +2,7 @@
   "expo": {
     "name": "IPCR Contemporary World Magazine",
     "slug": "IPCR-Contemporary-World-Magazine",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 2,   // 👈 Add this line
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

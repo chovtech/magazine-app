@@ -12,10 +12,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import RenderHTML from "react-native-render-html";
 import { updateSaveStatus, getPostById } from "../api/db";
-import {
-  getUserToken,
-  getUserSubscription,
-} from "../api/storageService"; // aligned ✅
+import { getUserToken } from "../api/storageService";
+import { getUserSubscription } from "../utils/membershipService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ArticleDetailsScreen({ route, navigation }) {
   const { article } = route.params || {};
@@ -24,20 +24,26 @@ export default function ArticleDetailsScreen({ route, navigation }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [subscription, setSubscription] = useState(null);
 
-  // Load user + subscription from local storage
-  useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const token = await getUserToken();
-        const sub = await getUserSubscription();
-        setIsLoggedIn(!!token);
-        setSubscription(sub);
-      } catch (err) {
-        console.error("Failed to fetch session info:", err);
-      }
-    };
-    fetchSession();
-  }, []);
+  // Load user + subscription when screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchSession = async () => {
+        try {
+          const allKeys = await AsyncStorage.getAllKeys();
+          console.log("🧩 All storage keys:", allKeys);
+
+          const token = await getUserToken();
+          const sub = await getUserSubscription();
+          setIsLoggedIn(!!token);
+          setSubscription(sub);
+          console.log("🔁 Refreshed subscription:", sub);
+        } catch (err) {
+          console.error("Failed to fetch session info:", err);
+        }
+      };
+      fetchSession();
+    }, [])
+  );
 
   // Load current saved status from DB
   useEffect(() => {
@@ -69,16 +75,21 @@ export default function ArticleDetailsScreen({ route, navigation }) {
   };
 
   // ---- Access Logic ----
-  const membershipLevel = article?.membership_level ?? 0; // 0 = free, 1 = login required, 2 = premium
-  const hasActiveSub =
-    subscription?.active &&
-    subscription.expiry &&
-    new Date(subscription.expiry) > new Date();
+  console.log("🧾 Subscription from storage:", subscription);
+  let accessState = "allowed";
 
-  let accessState = "allowed"; // default
-  if (membershipLevel === 1 && !isLoggedIn) {
+  const level = subscription?.membership_level || "0";
+  let expiry = subscription?.membership_expiry || 0;
+
+  // Normalize expiry to milliseconds
+  expiry = Number(expiry);
+  if (expiry && expiry < 2_000_000_000) expiry *= 1000;
+
+  const hasActiveSub = level === "2" && expiry > Date.now();
+
+  if (article?.membership_level === 1 && !isLoggedIn) {
     accessState = "loginRequired";
-  } else if (membershipLevel === 2) {
+  } else if (article?.membership_level === 2) {
     if (!isLoggedIn) {
       accessState = "loginRequired";
     } else if (!hasActiveSub) {
@@ -89,9 +100,8 @@ export default function ArticleDetailsScreen({ route, navigation }) {
   // ---- Show Teaser ----
   const getTeaser = (html) => {
     if (!html) return "";
-    // crude way: cut text length before tagsStyles apply
-    const plainText = html.replace(/<[^>]+>/g, ""); // strip HTML tags
-    const teaser = plainText.substring(0, 200); // first 200 chars
+    const plainText = html.replace(/<[^>]+>/g, "");
+    const teaser = plainText.substring(0, 200);
     return `<p>${teaser}...</p>`;
   };
 
@@ -194,7 +204,6 @@ export default function ArticleDetailsScreen({ route, navigation }) {
       {/* ---- Content / Restricted Access ---- */}
       {accessState !== "allowed" ? (
         <>
-          {/* Always show teaser */}
           {article?.content ? (
             <RenderHTML
               contentWidth={width}

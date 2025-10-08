@@ -11,9 +11,7 @@ import Constants from "expo-constants";
 import { NotificationProvider } from "./screens/NotificationContext";
 import UpdateModal from "./screens/UpdateModal";
 import { safeFetch } from "./utils/fetchWrapper";
-
-// 🚨 Removed Purchases import – no RevenueCat for mock
-// import Purchases from "react-native-purchases"; 
+import Purchases from "react-native-purchases";
 
 function MainApp() {
   const [dbReady, setDbReady] = useState(false);
@@ -47,8 +45,15 @@ function MainApp() {
         console.log("⚠️ Version check failed", error.message);
       }
 
-      // 🚨 Mock RevenueCat init
-      console.log("🔄 [MOCK] RevenueCat initialization skipped – using fake subscription flow.");
+      // ✅ Initialize RevenueCat once
+      try {
+        await Purchases.configure({
+          apiKey: "goog_GbBsxPvQBsvjnRqxuttXrttBNYW",
+        });
+        console.log("🟢 RevenueCat initialized successfully");
+      } catch (error) {
+        console.log("🚨 RevenueCat initialization failed:", error);
+      }
     }
 
     setup();

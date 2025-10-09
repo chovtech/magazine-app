@@ -1,3 +1,4 @@
+// DiscoverScreen.js
 import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
@@ -9,9 +10,10 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import HeaderWithSearch from "../components/HeaderWithSearch";
-import { getPosts } from "../api/db";
+import { getPosts, getPostById } from "../api/db"; // <-- getPostById added
 import { refreshPostsInBackground } from "../api/wpApi";
 
 export default function DiscoverScreen({ navigation, route }) {
@@ -19,15 +21,30 @@ export default function DiscoverScreen({ navigation, route }) {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [allArticles, setAllArticles] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // <-- new: pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
+  const [user, setUser] = useState(null);
+  const [membership, setMembership] = useState(null);
 
-  // Helper: load from local DB and format
+  // load user & membership info
+  const loadUser = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem("user");
+      if (storedUser) setUser(JSON.parse(storedUser));
+
+      const storedMembership = await AsyncStorage.getItem("membership");
+      if (storedMembership) setMembership(JSON.parse(storedMembership));
+    } catch (error) {
+      console.error("Error loading user/membership:", error);
+    }
+  };
+
+  // load posts from DB
   const loadFromDB = async () => {
     try {
       setLoading(true);
       const cachedPosts = await getPosts(50);
+
+      // keep a lightweight formatted list for rendering, but don't remove membership fields
       const formatted = cachedPosts.map((post) => ({
         uniqueId: `db-${post.id}`,
         id: post.id,
@@ -37,6 +54,11 @@ export default function DiscoverScreen({ navigation, route }) {
         author: post.author || "Unknown",
         content: post.content,
         date: post.date ? new Date(post.date).toDateString() : "",
+        // include membership fields in case some logic needs it without a DB roundtrip
+        membership_level: post.membership_level ?? 0,
+        membership_expiry: post.membership_expiry ?? null,
+        // optional helper
+        isPremium: (post.membership_level ?? 0) === 2,
       }));
       setAllArticles(formatted);
 
@@ -50,23 +72,30 @@ export default function DiscoverScreen({ navigation, route }) {
     }
   };
 
-  // initial load + background refresh
   useEffect(() => {
-    loadFromDB();
+    // mirror SavedScreen pattern: refresh when screen focuses
+    const fetchData = async () => {
+      await loadUser();
+      await loadFromDB();
+      // refresh in background and reload
+      refreshPostsInBackground(50).then(() => loadFromDB());
+    };
 
-    // background refresh then reload DB
-    refreshPostsInBackground(50).then(() => {
-      loadFromDB();
+    const unsubscribe = navigation.addListener("focus", () => {
+      fetchData();
     });
-  }, [route.params?.category]);
+
+    // initial load
+    fetchData();
+
+    return unsubscribe;
+  }, [navigation, route.params?.category]);
 
   // Pull-to-refresh handler
   const onRefresh = async () => {
     try {
       setRefreshing(true);
-      // this waits until posts are saved into SQLite
       await refreshPostsInBackground(50);
-      // reload from DB to get the saved posts
       await loadFromDB();
     } catch (err) {
       console.error("Refresh failed:", err);
@@ -75,13 +104,13 @@ export default function DiscoverScreen({ navigation, route }) {
     }
   };
 
-  // Compute categories
+  // categories
   const categories = useMemo(() => {
     const cats = allArticles.map((a) => a.category);
     return ["All", ...Array.from(new Set(cats))];
   }, [allArticles]);
 
-  // Filter articles by category & search
+  // filter
   const filteredArticles = useMemo(() => {
     return allArticles.filter((article) => {
       const matchCategory =
@@ -92,6 +121,32 @@ export default function DiscoverScreen({ navigation, route }) {
       return matchCategory && matchSearch;
     });
   }, [searchText, selectedCategory, allArticles]);
+
+  // ---- Important: fetch full post before navigating ----
+  const handlePressItem = async (item) => {
+    try {
+      // If item already has membership_level, we can use it; otherwise fetch full row
+      let fullPost = item;
+      if (item.membership_level === undefined || item.membership_level === null) {
+        const dbPost = await getPostById(item.id);
+        if (dbPost) {
+          fullPost = dbPost;
+        }
+      }
+
+      // Debugging logs — remove if noisy
+      console.log("Navigating to ArticleDetails with:", {
+        id: fullPost.id,
+        membership_level: fullPost.membership_level,
+        membership_expiry: fullPost.membership_expiry,
+      });
+
+      navigation.navigate("ArticleDetails", { article: fullPost });
+    } catch (err) {
+      console.error("Failed to load full post, navigating with lightweight item:", err);
+      navigation.navigate("ArticleDetails", { article: item });
+    }
+  };
 
   const renderCategory = ({ item }) => (
     <TouchableOpacity
@@ -115,7 +170,7 @@ export default function DiscoverScreen({ navigation, route }) {
   const renderArticle = ({ item }) => (
     <TouchableOpacity
       style={styles.articleCard}
-      onPress={() => navigation.navigate("ArticleDetails", { article: item })}
+      onPress={() => handlePressItem(item)}
     >
       <Image source={{ uri: item.image }} style={styles.articleImage} />
       <View style={styles.articleInfo}>
@@ -123,7 +178,9 @@ export default function DiscoverScreen({ navigation, route }) {
         <Text style={styles.articleTitle} numberOfLines={2}>
           {item.title}
         </Text>
-        {item.author && <Text style={styles.articleAuthor}>By {item.author}</Text>}
+        {item.author && (
+          <Text style={styles.articleAuthor}>By {item.author}</Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -162,7 +219,6 @@ export default function DiscoverScreen({ navigation, route }) {
           renderItem={renderArticle}
           contentContainerStyle={styles.articlesList}
           showsVerticalScrollIndicator={false}
-          // <-- pull-to-refresh props
           refreshing={refreshing}
           onRefresh={onRefresh}
         />
@@ -171,6 +227,7 @@ export default function DiscoverScreen({ navigation, route }) {
   );
 }
 
+// (styles unchanged — paste your existing styles here)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   searchInput: {
@@ -207,7 +264,12 @@ const styles = StyleSheet.create({
   },
   articleImage: { width: 100, height: 100 },
   articleInfo: { flex: 1, padding: 12, justifyContent: "center" },
-  articleCategory: { fontSize: 12, color: "green", marginBottom: 4, fontWeight: "600" },
+  articleCategory: {
+    fontSize: 12,
+    color: "green",
+    marginBottom: 4,
+    fontWeight: "600",
+  },
   articleTitle: { fontSize: 16, fontWeight: "700", color: "#222" },
   articleAuthor: { marginTop: 6, fontSize: 12, color: "#666" },
   loadingText: { textAlign: "center", marginTop: 6, fontSize: 14, color: "#888" },

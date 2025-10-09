@@ -148,7 +148,7 @@ export default function ProfileScreen({ navigation }) {
         }, 
         { 
           icon: 'document-text-outline', 
-          title: 'TermsAndConditions', 
+          title: 'Terms And Conditions', 
           subtitle: 'Read our legal agreements' 
         }, 
       ], 
@@ -225,7 +225,8 @@ export default function ProfileScreen({ navigation }) {
                 style={styles.menuItem}
                 onPress={() => {
                   if (item.title === "Logout") navigation.navigate("Logout");
-                  else navigation.navigate(item.title.replace(" ", ""));
+                  else navigation.navigate(item.title.replace(/\s+/g, ""));
+                  
                 }}
               >
                 <View style={styles.menuLeft}>

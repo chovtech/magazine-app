@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   StyleSheet,
   Dimensions,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -25,7 +27,7 @@ const onboardingSlides = [
     id: '2',
     title: 'Shaping China-Nigeria Economic Relationship',
     description:
-      'Exploring trade, investment, and strategic cooperation shaping China-Nigeria’s economic partnership today',
+      'Exploring trade, investment, and strategic cooperation shaping China-Nigeria’s economic partnership today.',
     image: require('../assets/img/slide2.jpg'),
   },
   {
@@ -37,15 +39,19 @@ const onboardingSlides = [
   },
 ];
 
-const OnboardingScreen = ({ navigation }) => {
+const OnboardingContent = ({ navigation }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
   const dragX = useRef(new Animated.Value(0)).current;
   const panGestureRef = useRef();
-  const insets = useSafeAreaInsets(); // device safe area
+  const insets = useSafeAreaInsets();
 
-  const goToNextSlide = () => {
+  const goToNextSlide = async () => {
+    if (isAnimating) return;
+
     if (currentSlide < onboardingSlides.length - 1) {
+      setIsAnimating(true);
       const newIndex = currentSlide + 1;
       setCurrentSlide(newIndex);
       Animated.spring(translateX, {
@@ -53,13 +59,15 @@ const OnboardingScreen = ({ navigation }) => {
         useNativeDriver: true,
         tension: 30,
         friction: 8,
-      }).start();
+      }).start(() => setIsAnimating(false));
     } else {
+      await AsyncStorage.setItem('hasOnboarded', 'true');
       navigation.replace('MainTabs');
     }
   };
 
-  const skipOnboarding = () => {
+  const skipOnboarding = async () => {
+    await AsyncStorage.setItem('hasOnboarded', 'true');
     navigation.replace('MainTabs');
   };
 
@@ -124,7 +132,7 @@ const OnboardingScreen = ({ navigation }) => {
                       { paddingBottom: 20 + insets.bottom },
                     ]}
                   >
-                    {/* Slide Indicators */}
+                    {/* Indicators */}
                     <View style={styles.indicatorContainer}>
                       {onboardingSlides.map((_, i) => (
                         <View
@@ -140,7 +148,9 @@ const OnboardingScreen = ({ navigation }) => {
                     {/* Text */}
                     <View style={styles.textContainer}>
                       <Text style={styles.title}>{slide.title}</Text>
-                      <Text style={styles.description}>{slide.description}</Text>
+                      <Text style={styles.description}>
+                        {slide.description}
+                      </Text>
                     </View>
 
                     {/* Buttons */}
@@ -153,6 +163,7 @@ const OnboardingScreen = ({ navigation }) => {
                       <TouchableOpacity
                         style={styles.fullWidthButton}
                         onPress={goToNextSlide}
+                        disabled={isAnimating}
                       >
                         <Text style={styles.buttonText}>
                           {currentSlide === onboardingSlides.length - 1
@@ -180,6 +191,45 @@ const OnboardingScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
+// ✅ Wrapper component that decides whether to show onboarding or main tabs
+        const OnboardingScreen = ({ navigation }) => {
+          const [isLoading, setIsLoading] = useState(true);
+          const [hasOnboarded, setHasOnboarded] = useState(false);
+
+          useEffect(() => {
+            const loadData = async () => {
+              const onboarded = await AsyncStorage.getItem('hasOnboarded');
+              setHasOnboarded(onboarded === 'true');
+              setIsLoading(false);
+            };
+            loadData();
+          }, []);
+
+          // ✅ Move navigation.replace into a side effect
+          useEffect(() => {
+            if (!isLoading && hasOnboarded) {
+              navigation.replace('MainTabs');
+            }
+          }, [isLoading, hasOnboarded]);
+
+          if (isLoading) {
+            return (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#4CAF50" />
+              </View>
+            );
+          }
+
+          // Only render onboarding when not yet onboarded
+          if (!hasOnboarded) {
+            return <OnboardingContent navigation={navigation} />;
+          }
+
+          // Render nothing temporarily while navigation happens
+          return null;
+        };
+
 
 const styles = StyleSheet.create({
   safeContainer: {
@@ -265,6 +315,12 @@ const styles = StyleSheet.create({
   skipText: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0E0316',
   },
 });
 

@@ -165,12 +165,13 @@ export default function PaymentScreen({ navigation }) {
   let statusText = "No active plan";
   let isActive = false;
 
-  if (String(membership?.level_id) === "1") {
+  if (membership?.level_id === 1 || membership?.membership_level === "1") {
     planTitle = "Free";
     statusText = "You're currently on the Free plan.";
   }
 
-  if (String(membership?.level_id) === "2") {
+  if (String(membership?.level_id) === "2" || String(membership?.membership_level) === "2"
+) {
     planTitle = planTitle || "Premium";
     if (!enddate) statusText = "No active subscription found.";
     else {
